@@ -9,6 +9,5 @@ class GaussfitCase(unittest.TestCase):
         inpars = [0, 1, 64, 64, 8, 8, 0]
         in_data = gf.twodgaussian(inpars, shape=(128, 128))
         fit = gf.gaussfit(in_data)
-        for inval, outval in zip(inpars, fit)[:-1]:
+        for inval, outval in zip(inpars, fit):
             self.assertAlmostEqual(inval, outval)
-        self.assertAlmostEqual(inpars[-1], fit[-1] % 360.0)
