@@ -36,8 +36,6 @@ def moments(data, circle, rotate, vheight, estimator=median, **kwargs):
     the gaussian parameters of a 2D distribution by calculating its
     moments.  Depending on the input parameters, will only output
     a subset of the above.
-
-    If using masked arrays, pass estimator=np.ma.median
     """
     total = np.abs(data).sum()
     Y, X = np.indices(data.shape)  # python convention: reverse x,y np.indices
@@ -198,6 +196,7 @@ def gaussfit(data, err=None, params=(), autoderiv=True, return_all=False,
 
         The rotation angle will always be 0 <= theta < 360 degrees.
     """
+    data = np.ma.array(data)
     usemoment = np.array(usemoment, dtype='bool')
     params = np.array(params, dtype='float')
     if usemoment.any() and len(params) == len(usemoment):
@@ -215,22 +214,12 @@ def gaussfit(data, err=None, params=(), autoderiv=True, return_all=False,
         if params[i] > maxpars[i] and limitedmax[i]: params[i] = maxpars[i]
         if params[i] < minpars[i] and limitedmin[i]: params[i] = minpars[i]
 
-    if err is None:
-        errorfunction = lambda p: np.ravel(twodgaussian(p, circle, rotate, vheight)
-                                           (*np.indices(data.shape) - data))
-    else:
-        errorfunction = lambda p: np.ravel(twodgaussian(p, circle, rotate, vheight)
-                                           (*np.indices(data.shape) - data) / err)
-
     def mpfitfun(data, err):
-        if err is None:
-            def f(p, fjac=None):
-                return [0, np.ravel(data-twodgaussian(p, circle, rotate, vheight)
-                                         (*np.indices(data.shape)))]
-        else:
-            def f(p, fjac=None):
-                return [0, np.ravel((data-twodgaussian(p, circle, rotate, vheight)
-                                          (*np.indices(data.shape))) / err)]
+        err = err if err is not None else 1.0
+        def f(p, fjac):
+            delta = (data - twodgaussian(p, circle, rotate, vheight)(*np.indices(data.shape))) / err
+            raveled = np.ravel(delta) if data.mask is np.ma.nomask else delta[~delta.mask]
+            return [0, raveled]
         return f
 
     parinfo = [{'n': 1, 'value': params[1], 'limits': [minpars[1], maxpars[1]],
@@ -265,8 +254,6 @@ def gaussfit(data, err=None, params=(), autoderiv=True, return_all=False,
         # like this feature implemented
         raise ValueError("I'm sorry, I haven't implemented this feature yet.")
     else:
-#        p, cov, infodict, errmsg, success = optimize.leastsq(errorfunction,\
-#                params, full_output=1)
         mp = mpfit(mpfitfun(data, err), parinfo=parinfo, quiet=quiet)
 
     if (not circle) and rotate:
