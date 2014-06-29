@@ -11,3 +11,21 @@ class GaussfitCase(unittest.TestCase):
         fit = gf.gaussfit(in_data)
         for inval, outval in zip(inpars, fit):
             self.assertAlmostEqual(inval, outval)
+
+    def test_masked_fit(self):
+        inpars = [0, 1, 64, 64, 8, 8, 0]
+        in_data = gf.twodgaussian(inpars, shape=(128,128))
+        masked_data = np.ma.array(in_data)
+
+        # fit should be independent of masked data value
+        masked_data[64,64] = 1e6
+        masked_data[64,64] = np.ma.masked
+        fit1 = gf.gaussfit(masked_data)
+
+        masked_data[64,64] = 0
+        masked_data[64,64] = np.ma.masked
+        fit2 = gf.gaussfit(masked_data)
+
+        for v1, v2 in zip(fit1, fit2):
+            self.assertAlmostEqual(v1, v2)
+
