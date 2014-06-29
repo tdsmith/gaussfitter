@@ -196,7 +196,7 @@ def gaussfit(data, err=None, params=(), autoderiv=True, return_all=False,
 
         The rotation angle will always be 0 <= theta < 360 degrees.
     """
-    data = np.ma.array(data)
+    data = data.view(np.ma.MaskedArray)
     usemoment = np.array(usemoment, dtype='bool')
     params = np.array(params, dtype='float')
     if usemoment.any() and len(params) == len(usemoment):
@@ -218,8 +218,7 @@ def gaussfit(data, err=None, params=(), autoderiv=True, return_all=False,
         err = err if err is not None else 1.0
         def f(p, fjac):
             delta = (data - twodgaussian(p, circle, rotate, vheight)(*np.indices(data.shape))) / err
-            raveled = np.ravel(delta) if data.mask is np.ma.nomask else delta[~delta.mask]
-            return [0, raveled]
+            return [0, delta.compressed()]
         return f
 
     parinfo = [{'n': 1, 'value': params[1], 'limits': [minpars[1], maxpars[1]],
